@@ -5,7 +5,10 @@
 
 import main;
 import std.stdio;
-import std.file;
+import std.file,
+       std.format,
+       std.regex,
+       std.array;
 
 class DshUtils{
   static DshCore sharedDshCoreInstance;
@@ -16,9 +19,17 @@ class DshUtils{
 
   public string writePromptLine(){
     string currentUser     = sharedDshCoreInstance.user;
-    string currentDirctory = getcwd();
+    string hostname        = sharedDshCoreInstance.hostname;
+    string currentDirctory = (){
+      string tmp     = getcwd();
+      string homeDir = sharedDshCoreInstance.homeDir ~ "/";
+      if(tmp.match(regex(homeDir)))
+        tmp = tmp.replace(regex(homeDir), "~/");
+      return tmp;
+    }();
+    auto prompt = appender!string;
 
-
-    return "hoge@fuga %";
+    formattedWrite(prompt, "%s@%s %s %% ", currentUser, hostname,currentDirctory);
+    return prompt.data;
   }
 }
