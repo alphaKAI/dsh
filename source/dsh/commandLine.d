@@ -149,8 +149,7 @@ class DSHCommandLine {
               return EM_FAILURE;
             }
           }),
-      "dot" : Event("dot", r"^\.\w+.*$/", (string[] arguments, string inputLine) {
-          writeln("DOT");
+      "dot" : Event("dot", r"^.\w+", (string[] arguments, string inputLine) {
             inputLine = inputLine[1..$];
 
             auto pid = spawnProcess(inputLine);

@@ -7,7 +7,7 @@ import std.algorithm.searching,
        std.regex,
        std.stdio;
 
-immutable EM_DEBUG = !false;
+immutable EM_DEBUG = false;
 
 immutable EM_SUCCESS = 0;
 immutable EM_FAILURE = -1;
