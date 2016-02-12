@@ -2,8 +2,7 @@ module dsh.commandLine;
 
 import dsh.executeMachine,
        dsh.environment,
-       dsh.users,
-       dsh.utils;
+       dsh.users;
 
 import std.algorithm.searching,
        std.algorithm.iteration,
