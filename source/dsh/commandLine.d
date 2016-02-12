@@ -383,7 +383,7 @@ class DSHCommandLine {
     }
   }
   
-  @property private string getPrompt() {
+  private string getPrompt() {
     return users.currentUser.isRoot ? "#" : "%";
   }
 
