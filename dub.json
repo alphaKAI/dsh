@@ -1,7 +1,7 @@
 {
 	"name": "dsh",
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2015, alphakai",
+	"description": "A minimal D Shell.",
+	"copyright": "Copyright © 2015-2016, alphakai",
 	"authors": ["alphakai"],
 	"dependencies": {
 	}
