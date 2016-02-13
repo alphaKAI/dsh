@@ -11,7 +11,8 @@ import std.algorithm.searching,
        std.array,
        std.regex,
        std.stdio,
-       std.file;
+       std.file,
+       std.conv;
 
 enum DSHMode : int {
   user,
@@ -73,9 +74,8 @@ class DSHCommandLine {
             arguments ~= "";
           }
 
-
           if (arguments[1].empty) {
-            arguments[1] = users.currentUser.home;
+            arguments[1] = getcwd;
           }
 
           if (!std.file.exists(arguments[1])) {
@@ -144,17 +144,6 @@ class DSHCommandLine {
           }),
       "suMode" : Event("suMode", "^suMode", (string[] arguments, string inputLine) {
             if (users.currentUser.suMode) {
-              return EM_SUCCESS;
-            } else {
-              return EM_FAILURE;
-            }
-          }),
-      "dot" : Event("dot", r"^.\w+", (string[] arguments, string inputLine) {
-            inputLine = inputLine[1..$];
-
-            auto pid = spawnProcess(inputLine);
-            auto status = wait(pid);
-            if (status == 0) {
               return EM_SUCCESS;
             } else {
               return EM_FAILURE;
@@ -259,6 +248,18 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }),
       "default" : Event("default", null, (string[] arguments, string inputLine) {
+            if (arguments[0].matchAll(regex(r"^.\w+")) && inputLine[0].to!string == ".") {
+              inputLine = inputLine[1..$];
+
+              auto pid = spawnProcess(inputLine);
+              auto status = wait(pid);
+              if (status == 0) {
+                return EM_SUCCESS;
+              } else {
+                return EM_FAILURE;
+              }
+            }
+
             if (std.file.exists(arguments[0]) && arguments[0].isDir) {
               arguments[0].chdir;
 
