@@ -7,10 +7,11 @@ import std.algorithm.searching,
        std.regex;
 
 class DSHEnvironment {
-  private string[string] DSHEnv;
+  private string[string] env;
   private mrb_state* _mrb;
 
   this() {
+
     _mrb = mrb_open;
   }
 
@@ -23,21 +24,21 @@ class DSHEnvironment {
   }
 
   @property string[string] envs() {
-    return DSHEnv;
+    return env;
   }
 
   public void setEnv(string key, string value) {
-    DSHEnv[key] = value;
+    env[key] = value;
   }
 
   public void deleteEnv(string key) {
-    if (DSHEnv.keys.canFind(key)){
-      DSHEnv.remove(key);
+    if (env.keys.canFind(key)){
+      env.remove(key);
     }
   }
 
   public string getEnv(string key) {
-    return DSHEnv.keys.canFind(key) ? DSHEnv[key] : ""; 
+    return env.keys.canFind(key) ? env[key] : ""; 
   }
 
   public string replaceEnvs(string line) {
