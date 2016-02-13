@@ -2,7 +2,8 @@ module dsh.commandLine;
 
 import dsh.executeMachine,
        dsh.environment,
-       dsh.users;
+       dsh.users,
+       dsh.user;
 
 import std.algorithm.searching,
        std.algorithm.iteration,
@@ -26,7 +27,6 @@ class DSHCommandLine {
   private DSHUser user;
   private DSHUsers users;
   private ExecuteMachine EM;
-  private DSHEnvironment dshenv;
   private string hostName;
   private string pluginDir;
   private string[] commands;
@@ -37,7 +37,6 @@ class DSHCommandLine {
     users = new DSHUsers(user);
     EM    = new ExecuteMachine;
     hostName = environment.get("HOST");
-    dshenv = new DSHEnvironment;
     commands = [
       "exit", "sudo", "ls", "cd", "pwd", "help", "users", 
       "login", "createuser", "aliases",
@@ -232,7 +231,7 @@ class DSHCommandLine {
             }
 
             string argumentsLine = arguments[1..$].join;
-            dshenv.setEnv(argumentsLine.split("=")[0], argumentsLine.split("=")[1]);
+            users.currentUser.env.setEnv(argumentsLine.split("=")[0], argumentsLine.split("=")[1]);
 
             return EM_SUCCESS;
           }),
@@ -243,7 +242,7 @@ class DSHCommandLine {
               return EM_FAILURE;
             }
 
-            dshenv.deleteEnv(arguments[1]);
+             users.currentUser.env.deleteEnv(arguments[1]);
 
             return EM_SUCCESS;
           }),
@@ -336,7 +335,7 @@ class DSHCommandLine {
 
       string[] dontReplaceEnvCommandNames = ["set", "unset"];
       if (!dontReplaceEnvCommandNames.canFind(inputLine.split[0])) {
-        inputLine = dshenv.replaceEnvs(inputLine);
+        inputLine = users.currentUser.env.replaceEnvs(inputLine);
       }
 
       if (inputLine.matchAll(regex(r".*\s>(.*)"))) {

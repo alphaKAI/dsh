@@ -1,6 +1,5 @@
 module dsh.plugin;
-import mruby2d.mruby2d,
-       mruby2d.mrubyCompile;
+import mruby2d;
 import std.string,
        std.regex,
        std.stdio,

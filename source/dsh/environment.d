@@ -1,5 +1,5 @@
 module dsh.environment;
-
+import mruby2d;
 import std.algorithm.searching,
        std.algorithm.iteration,
        std.string,
@@ -8,6 +8,19 @@ import std.algorithm.searching,
 
 class DSHEnvironment {
   private string[string] DSHEnv;
+  private mrb_state* _mrb;
+
+  this() {
+    _mrb = mrb_open;
+  }
+
+  ~this() {
+    mrb_close(_mrb);
+  }
+  
+  @property mrb() {
+    return _mrb;
+  }
 
   @property string[string] envs() {
     return DSHEnv;

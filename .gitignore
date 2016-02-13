@@ -7,3 +7,4 @@ dsh
 !dsh/
 .*.*.*sw*
 dub.selections.json
+config
