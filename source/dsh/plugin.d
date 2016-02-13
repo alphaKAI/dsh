@@ -37,7 +37,7 @@ class Plugin {
     mrb_run(mrb, proc, mrb_top_self(mrb));
   }
 
-  void exec(string args) {
-    mrb_load_string(mrb, (name ~ "(\"" ~ args ~ "\")").toStringz);
+  bool exec(string args) {
+    return execMRubyString(mrb, name ~ "(\"" ~ args ~ "\")");
   }
 }

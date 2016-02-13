@@ -1,7 +1,9 @@
 module dsh.commandLine;
+import mruby2d;
 
 import dsh.executeMachine,
        dsh.environment,
+       dsh.shellScript,
        dsh.users,
        dsh.user;
 
@@ -27,6 +29,7 @@ class DSHCommandLine {
   private DSHUser user;
   private DSHUsers users;
   private ExecuteMachine EM;
+  private DSHshellScript shellScript;
   private string hostName;
   private string pluginDir;
   private string[] commands;
@@ -36,7 +39,11 @@ class DSHCommandLine {
     user  = new DSHUser(0, environment.get("USER"));
     users = new DSHUsers(user);
     EM    = new ExecuteMachine;
-    hostName = environment.get("HOST");
+    hostName = "MacBook-Pro";//environment.get("HOST");
+    shellScript = new DSHshellScript(
+                    users.currentUser.env.mrb,
+                    EM,
+                    users.currentUser.env);
     commands = [
       "exit", "sudo", "ls", "cd", "pwd", "help", "users", 
       "login", "createuser", "aliases",
@@ -45,7 +52,7 @@ class DSHCommandLine {
 
 
     EM.registerEventByHash([
-      "exit" : Event("exit", "^exit", (string[] arguments, string inputLine) {
+      "exit" : EMEvent("exit", "^exit", (string[] arguments, string inputLine) {
           if (users.exit) {
             if (users.nestedLogin) {
               users.logout;
@@ -57,7 +64,7 @@ class DSHCommandLine {
             return EM_FAILURE;
           }
         }),
-      "ls" : Event("ls", "^ls", (string[] arguments, string inputLine) {
+      "ls" : EMEvent("ls", "^ls", (string[] arguments, string inputLine) {
           bool allFlag,
                listFlag;
 
@@ -98,7 +105,7 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }
         }),
-      "cd" : Event("cd", "^cd", (string[] arguments, string inputLine) {
+      "cd" : EMEvent("cd", "^cd", (string[] arguments, string inputLine) {
           if (arguments.length < 2) {
             arguments ~= getcwd;
           }
@@ -113,12 +120,12 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }
         }),
-      "pwd" : Event("pwd", "^pwd", (string[] arguments, string inputLine) {
+      "pwd" : EMEvent("pwd", "^pwd", (string[] arguments, string inputLine) {
             writeln(getcwd);
 
             return EM_SUCCESS;
           }),
-      "help" : Event("help", "^help", (string[] arguments, string inputLine) {
+      "help" : EMEvent("help", "^help", (string[] arguments, string inputLine) {
             writeln("commands:");
 
             foreach (command; commands) {
@@ -127,7 +134,7 @@ class DSHCommandLine {
 
             return EM_SUCCESS;
           }),
-      "sudo" : Event("sudo", "^sudo", (string[] arguments, string inputLine) {
+      "sudo" : EMEvent("sudo", "^sudo", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Error - sudo]");
               writeln("Wrong arguments. Sudo require two arguments.");
@@ -141,21 +148,21 @@ class DSHCommandLine {
               return EM_SUCCESS;
             }
           }),
-      "suMode" : Event("suMode", "^suMode", (string[] arguments, string inputLine) {
+      "suMode" : EMEvent("suMode", "^suMode", (string[] arguments, string inputLine) {
             if (users.currentUser.suMode) {
               return EM_SUCCESS;
             } else {
               return EM_FAILURE;
             }
           }),
-      "users" : Event("users", "^users", (string[] arguments, string inputLine) {
+      "users" : EMEvent("users", "^users", (string[] arguments, string inputLine) {
             foreach (_user; users.users) {
               writeln(_user);
             }
 
             return EM_SUCCESS;
           }),
-      "login" : Event("login", "^login", (string[] arguments, string inputLine) {
+      "login" : EMEvent("login", "^login", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -168,7 +175,7 @@ class DSHCommandLine {
               return EM_FAILURE;
             }
           }),
-      "createuser" : Event("createuser", "^createuser", (string[] arguments, string inputLine) {
+      "createuser" : EMEvent("createuser", "^createuser", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -187,14 +194,14 @@ class DSHCommandLine {
               return EM_SUCCESS;
             }
           }),
-      "aliases" : Event("aliases", "^aliases", (string[] arguments, string inputLine) {
+      "aliases" : EMEvent("aliases", "^aliases", (string[] arguments, string inputLine) {
             foreach (_short, _long; users.currentUser.aliases) {
               writeln(_short, " -> ", _long);
             }
 
             return EM_SUCCESS;
           }),
-      "alias" : Event("alias", "^alias$", (string[] arguments, string inputLine) {
+      "alias" : EMEvent("alias", "^alias$", (string[] arguments, string inputLine) {
             inputLine = inputLine.replace("alias ", "");
 
             if (!inputLine.canFind("=")) {
@@ -211,19 +218,19 @@ class DSHCommandLine {
               return EM_SUCCESS;
             }
           }),
-      "unalias" : Event("unalias", "^unalias", (string[] arguments, string inputLine) {
+      "unalias" : EMEvent("unalias", "^unalias", (string[] arguments, string inputLine) {
             foreach (e; inputLine.split[1..$]) {
               users.currentUser.unalias(e);
             }
 
             return EM_SUCCESS;
           }),
-      "saveConfig" : Event("saveConfig", "^saveConfig", (string[] arguments, string inputLine) {
+      "saveConfig" : EMEvent("saveConfig", "^saveConfig", (string[] arguments, string inputLine) {
             users.currentUser.saveConfig;
 
             return EM_SUCCESS;
           }),
-      "set" : Event("set", "^set", (string[] arguments, string inputLine) {
+      "set" : EMEvent("set", "^set", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -235,7 +242,7 @@ class DSHCommandLine {
 
             return EM_SUCCESS;
           }),
-      "unset" : Event("unset", "^unset", (string[] arguments, string inputLine) {
+      "unset" : EMEvent("unset", "^unset", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -246,7 +253,13 @@ class DSHCommandLine {
 
             return EM_SUCCESS;
           }),
-      "default" : Event("default", null, (string[] arguments, string inputLine) {
+      "default" : EMEvent("default", null, (string[] arguments, string inputLine) {
+            if (std.file.exists(arguments[0]) && arguments[0].isDir) {
+              arguments[0].chdir;
+
+              return EM_SUCCESS;
+            }
+
             if (arguments[0].matchAll(regex(r"^.\w+")) && inputLine[0].to!string == ".") {
               inputLine = inputLine[1..$];
 
@@ -259,10 +272,23 @@ class DSHCommandLine {
               }
             }
 
-            if (std.file.exists(arguments[0]) && arguments[0].isDir) {
-              arguments[0].chdir;
+            /**/
+            string[] inputBuffer = [inputLine];
+            bool isRubyCode;
+            shellScript.syntaxValidator(inputLine);
+            while (!shellScript.blockTokenStack.empty) {
+              isRubyCode = true;
+              write("blockInput => ");
+              string input = readln;
+              if (stdin.eof) {
+                break;
+              }
+              shellScript.syntaxValidator(input);
+              inputBuffer ~= input.chomp;
+            }
 
-              return EM_SUCCESS;
+            if (!execMRubyString(users.currentUser.env.mrb, inputBuffer.join(";"))) {
+              //other;
             }
 
             return EM_SUCCESS;

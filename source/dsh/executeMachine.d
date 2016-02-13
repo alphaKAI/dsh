@@ -8,10 +8,10 @@ import std.algorithm.searching,
        std.stdio;
 
 immutable EM_DEBUG = false;
-
 immutable EM_SUCCESS = 0;
 immutable EM_FAILURE = -1;
-struct Event {
+
+struct EMEvent {
   string eventName;
   string pattern;
   int delegate(string[], string) behave;
@@ -19,7 +19,7 @@ struct Event {
 
 class ExecuteMachine {
   private string[] _regexes;
-  private Event[string] events;
+  private EMEvent[string] events;
 
   @property string[] regexes() {
     return _regexes;
@@ -29,13 +29,13 @@ class ExecuteMachine {
     return events.keys.canFind(eventName);
   }
 
-  public void registerEvent(Event event) {
+  public void registerEvent(EMEvent event) {
     events[event.eventName] = event;
 
     _regexes ~= event.pattern;
   }
 
-  public void registerEventByHash(Event[string] eventHash) {
+  public void registerEventByHash(EMEvent[string] eventHash) {
     foreach(eventName, event; eventHash) {
       registerEvent(event);
     }
