@@ -74,7 +74,6 @@ class DSHCommandLine {
             arguments ~= "";
           }
 
-
           if (arguments[1].empty) {
             arguments[1] = getcwd;
           }
