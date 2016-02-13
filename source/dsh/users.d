@@ -21,7 +21,7 @@ class DSHUsers {
       _users[owner.name] = owner;
       _currentUser      = owner;
     }
-    //loadUsers;
+    loadUsers;
   }
 
   @property bool nestedLogin() {
