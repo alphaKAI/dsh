@@ -24,8 +24,8 @@ class DSHshellScript {
   private string[string] blockTokenPairsReversed;
   private string[string] tokenPairs;
   private string[string] tokenPairsReversed;
-  public Stack2!string tokenStack;
-  public Stack2!string blockTokenStack;
+  public Stack!string tokenStack;
+  public Stack!string blockTokenStack;
 
   this(mrb_state* newMrb, ExecuteMachine _EM, DSHEnvironment _env) {
     EM  = _EM;
@@ -34,10 +34,10 @@ class DSHshellScript {
 
     registerTokens;
 
-/*    tokenStack.init;
+    tokenStack.init;
     tokenStack.autoExtend = false;
     blockTokenStack.init;
-    blockTokenStack.autoExtend = false;*/
+    blockTokenStack.autoExtend = false;
   }
 
   private void registerTokens() {

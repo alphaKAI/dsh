@@ -56,21 +56,3 @@ struct Stack(T) {
     return realLen == 0;
   }
 }
-
-struct Stack2(T) {
-  private T[] stack;
-
-  void push(T newValue) {
-    stack ~= newValue;
-  }
-
-  @property T pop() {
-    T t = stack[$ - 1];
-    stack = stack[0..$ - 1];
-    return t;
-  }
-
-  @property bool empty() {
-    return stack.empty;
-  }
-}
