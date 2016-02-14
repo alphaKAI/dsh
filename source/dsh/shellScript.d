@@ -1,5 +1,4 @@
 module dsh.shellScript;
-import mruby2d;
 import dsh.executeMachine,
        dsh.environment,
        dsh.stack;
@@ -17,17 +16,15 @@ struct EngineProcess {
 }
 
 class DSHshellScript {
-  private mrb_state* mrb;
   private DSHEnvironment env;
   private ExecuteMachine EM;
   private char[char] TokenPairs;
   private char[char] TokenPairsReversed;
   private char[] Quotes;
 
-  this(mrb_state* newMrb, ExecuteMachine _EM, DSHEnvironment _env) {
+  this(ExecuteMachine _EM, DSHEnvironment _env) {
     EM  = _EM;
     env = _env;
-    mrb = newMrb;
 
     registerTokens;
   }

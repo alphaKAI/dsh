@@ -1,5 +1,4 @@
 module dsh.commandLine;
-import mruby2d;
 
 import dsh.executeMachine,
        dsh.environment,
@@ -17,11 +16,60 @@ import std.algorithm.searching,
        std.file,
        std.conv;
 
+import core.sys.posix.signal,
+       core.stdc.signal,
+       core.stdc.string,
+       core.stdc.stdlib,
+       core.memory;
+
+import parser.parser,
+       ir.analysis,
+       runtime.vm,util.string,
+       util.os,
+       options,
+       ir.ir;
+
 enum DSHMode : int {
   user,
   root
 }
 
+IRInstr instrPtr = null;
+
+extern (C) void segfaultHandler(int signal, siginfo_t* si, void* arg) {
+    import jit.codeblock;
+
+    // si->si_addr is the instruction pointer
+    auto ip = cast(CodePtr)si.si_addr;
+
+    writeln();
+    writeln("Caught segmentation fault");
+    writeln("IP=", ip);
+
+    auto cb = vm.execHeap;
+    auto startAddr = cb.getAddress(0);
+    auto endAddr = startAddr + cb.getWritePos();
+
+    if (ip >= startAddr && ip < endAddr)
+    {
+      auto offset = ip - startAddr;
+      writeln("IP in jitted code, offset=", offset);
+    }
+
+    if (vm.curInstr !is null)
+    {
+      writeln("vm.curInstr: ", vm.curInstr);
+    }
+
+    if (instrPtr !is null)
+    {
+      writeln("instrPtr: ", instrPtr);
+      writeln("curFun: ", instrPtr.block.fun.getName);
+    }
+
+    writeln("exiting");
+    exit(139);
+  }
 immutable EXITDSH    = -0xdeadbeaf;
 
 class DSHCommandLine {
@@ -41,7 +89,6 @@ class DSHCommandLine {
     EM    = new ExecuteMachine;
     hostName = "MacBook-Pro";//environment.get("HOST");
     shellScript = new DSHshellScript(
-                    users.currentUser.env.mrb,
                     EM,
                     users.currentUser.env);
     commands = [
@@ -273,27 +320,47 @@ class DSHCommandLine {
             }
 
             /**/
-            string[] inputBuffer = [inputLine];
-            bool isRubyCode;
-            shellScript.syntaxValidator(inputLine);
-            while (!shellScript.blockTokenStack.empty) {
-              isRubyCode = true;
+            string inputBuffer = inputLine;
+            
+            while (!shellScript.tokenValidator(inputBuffer)) {
               write("blockInput => ");
               string input = readln;
               if (stdin.eof) {
                 break;
               }
-              shellScript.syntaxValidator(input);
               inputBuffer ~= input.chomp;
             }
 
-            if (!execMRubyString(users.currentUser.env.mrb, inputBuffer.join(";"))) {
-              //other;
+            try {
+              vm.evalString(inputBuffer);
+            } catch {
+              writeln("Some Error");
             }
 
             return EM_SUCCESS;
           }),
     ]);
+
+
+    initHiggsVM;
+  }
+
+  private void initHiggsVM() {
+    GC.reserve(1024 * 1024 * 1024);
+
+    sigaction_t sa;
+    memset(&sa, 0, sa.sizeof);
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = &segfaultHandler;
+    sa.sa_flags = SA_SIGINFO;
+    sigaction(SIGSEGV, &sa, null);
+
+
+    VM.init(!opts.noruntime, !opts.nostdlib);
+  }
+
+  ~this() {
+    VM.free;
   }
 
   private void processLine(string inputLine) {

@@ -5,6 +5,6 @@
 	"authors": ["alphakai"],
 	"dependencies": {
 	},
-  "libs":["mruby"],
-  "sourceFiles":["source/c/mrubyCompile.o"]
+  "libs":["mruby", "dl"],
+  "dflags":["-J./source/higgs"]
 }
