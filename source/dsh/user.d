@@ -33,6 +33,7 @@ class DSHUser {
     _suMode        = false;
     configFilePath = "config/" ~ name ~ ".json";
     config         = new DSHConfig;
+    _env           = new DSHEnvironment;
 
     loadUserConfig;
   }

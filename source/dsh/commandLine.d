@@ -2,6 +2,7 @@ module dsh.commandLine;
 
 import dsh.executeMachine,
        dsh.environment,
+       dsh.shellScript,
        dsh.users,
        dsh.user;
 
@@ -15,11 +16,60 @@ import std.algorithm.searching,
        std.file,
        std.conv;
 
+import core.sys.posix.signal,
+       core.stdc.signal,
+       core.stdc.string,
+       core.stdc.stdlib,
+       core.memory;
+
+import parser.parser,
+       ir.analysis,
+       runtime.vm,util.string,
+       util.os,
+       options,
+       ir.ir;
+
 enum DSHMode : int {
   user,
   root
 }
 
+IRInstr instrPtr = null;
+
+extern (C) void segfaultHandler(int signal, siginfo_t* si, void* arg) {
+    import jit.codeblock;
+
+    // si->si_addr is the instruction pointer
+    auto ip = cast(CodePtr)si.si_addr;
+
+    writeln();
+    writeln("Caught segmentation fault");
+    writeln("IP=", ip);
+
+    auto cb = vm.execHeap;
+    auto startAddr = cb.getAddress(0);
+    auto endAddr = startAddr + cb.getWritePos();
+
+    if (ip >= startAddr && ip < endAddr)
+    {
+      auto offset = ip - startAddr;
+      writeln("IP in jitted code, offset=", offset);
+    }
+
+    if (vm.curInstr !is null)
+    {
+      writeln("vm.curInstr: ", vm.curInstr);
+    }
+
+    if (instrPtr !is null)
+    {
+      writeln("instrPtr: ", instrPtr);
+      writeln("curFun: ", instrPtr.block.fun.getName);
+    }
+
+    writeln("exiting");
+    exit(139);
+  }
 immutable EXITDSH    = -0xdeadbeaf;
 
 class DSHCommandLine {
@@ -27,7 +77,7 @@ class DSHCommandLine {
   private DSHUser user;
   private DSHUsers users;
   private ExecuteMachine EM;
-  private DSHEnvironment dshenv;
+  private DSHshellScript shellScript;
   private string hostName;
   private string pluginDir;
   private string[] commands;
@@ -37,8 +87,10 @@ class DSHCommandLine {
     user  = new DSHUser(0, environment.get("USER"));
     users = new DSHUsers(user);
     EM    = new ExecuteMachine;
-    hostName = environment.get("HOST");
-    dshenv = new DSHEnvironment;
+    hostName = "MacBook-Pro";//environment.get("HOST");
+    shellScript = new DSHshellScript(
+                    EM,
+                    users.currentUser.env);
     commands = [
       "exit", "sudo", "ls", "cd", "pwd", "help", "users", 
       "login", "createuser", "aliases",
@@ -47,7 +99,7 @@ class DSHCommandLine {
 
 
     EM.registerEventByHash([
-      "exit" : Event("exit", "^exit", (string[] arguments, string inputLine) {
+      "exit" : EMEvent("exit", "^exit", (string[] arguments, string inputLine) {
           if (users.exit) {
             if (users.nestedLogin) {
               users.logout;
@@ -59,7 +111,7 @@ class DSHCommandLine {
             return EM_FAILURE;
           }
         }),
-      "ls" : Event("ls", "^ls", (string[] arguments, string inputLine) {
+      "ls" : EMEvent("ls", "^ls", (string[] arguments, string inputLine) {
           bool allFlag,
                listFlag;
 
@@ -100,7 +152,7 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }
         }),
-      "cd" : Event("cd", "^cd", (string[] arguments, string inputLine) {
+      "cd" : EMEvent("cd", "^cd", (string[] arguments, string inputLine) {
           if (arguments.length < 2) {
             arguments ~= getcwd;
           }
@@ -115,12 +167,12 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }
         }),
-      "pwd" : Event("pwd", "^pwd", (string[] arguments, string inputLine) {
+      "pwd" : EMEvent("pwd", "^pwd", (string[] arguments, string inputLine) {
             writeln(getcwd);
 
             return EM_SUCCESS;
           }),
-      "help" : Event("help", "^help", (string[] arguments, string inputLine) {
+      "help" : EMEvent("help", "^help", (string[] arguments, string inputLine) {
             writeln("commands:");
 
             foreach (command; commands) {
@@ -129,7 +181,7 @@ class DSHCommandLine {
 
             return EM_SUCCESS;
           }),
-      "sudo" : Event("sudo", "^sudo", (string[] arguments, string inputLine) {
+      "sudo" : EMEvent("sudo", "^sudo", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Error - sudo]");
               writeln("Wrong arguments. Sudo require two arguments.");
@@ -143,21 +195,21 @@ class DSHCommandLine {
               return EM_SUCCESS;
             }
           }),
-      "suMode" : Event("suMode", "^suMode", (string[] arguments, string inputLine) {
+      "suMode" : EMEvent("suMode", "^suMode", (string[] arguments, string inputLine) {
             if (users.currentUser.suMode) {
               return EM_SUCCESS;
             } else {
               return EM_FAILURE;
             }
           }),
-      "users" : Event("users", "^users", (string[] arguments, string inputLine) {
+      "users" : EMEvent("users", "^users", (string[] arguments, string inputLine) {
             foreach (_user; users.users) {
               writeln(_user);
             }
 
             return EM_SUCCESS;
           }),
-      "login" : Event("login", "^login", (string[] arguments, string inputLine) {
+      "login" : EMEvent("login", "^login", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -170,7 +222,7 @@ class DSHCommandLine {
               return EM_FAILURE;
             }
           }),
-      "createuser" : Event("createuser", "^createuser", (string[] arguments, string inputLine) {
+      "createuser" : EMEvent("createuser", "^createuser", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -189,14 +241,14 @@ class DSHCommandLine {
               return EM_SUCCESS;
             }
           }),
-      "aliases" : Event("aliases", "^aliases", (string[] arguments, string inputLine) {
+      "aliases" : EMEvent("aliases", "^aliases", (string[] arguments, string inputLine) {
             foreach (_short, _long; users.currentUser.aliases) {
               writeln(_short, " -> ", _long);
             }
 
             return EM_SUCCESS;
           }),
-      "alias" : Event("alias", "^alias$", (string[] arguments, string inputLine) {
+      "alias" : EMEvent("alias", "^alias$", (string[] arguments, string inputLine) {
             inputLine = inputLine.replace("alias ", "");
 
             if (!inputLine.canFind("=")) {
@@ -213,19 +265,19 @@ class DSHCommandLine {
               return EM_SUCCESS;
             }
           }),
-      "unalias" : Event("unalias", "^unalias", (string[] arguments, string inputLine) {
+      "unalias" : EMEvent("unalias", "^unalias", (string[] arguments, string inputLine) {
             foreach (e; inputLine.split[1..$]) {
               users.currentUser.unalias(e);
             }
 
             return EM_SUCCESS;
           }),
-      "saveConfig" : Event("saveConfig", "^saveConfig", (string[] arguments, string inputLine) {
+      "saveConfig" : EMEvent("saveConfig", "^saveConfig", (string[] arguments, string inputLine) {
             users.currentUser.saveConfig;
 
             return EM_SUCCESS;
           }),
-      "set" : Event("set", "^set", (string[] arguments, string inputLine) {
+      "set" : EMEvent("set", "^set", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
@@ -233,22 +285,28 @@ class DSHCommandLine {
             }
 
             string argumentsLine = arguments[1..$].join;
-            dshenv.setEnv(argumentsLine.split("=")[0], argumentsLine.split("=")[1]);
+            users.currentUser.env.setEnv(argumentsLine.split("=")[0], argumentsLine.split("=")[1]);
 
             return EM_SUCCESS;
           }),
-      "unset" : Event("unset", "^unset", (string[] arguments, string inputLine) {
+      "unset" : EMEvent("unset", "^unset", (string[] arguments, string inputLine) {
             if (arguments.length < 2) {
               writeln("[Wrong arguments] - Require two arguments");
 
               return EM_FAILURE;
             }
 
-            dshenv.deleteEnv(arguments[1]);
+             users.currentUser.env.deleteEnv(arguments[1]);
 
             return EM_SUCCESS;
           }),
-      "default" : Event("default", null, (string[] arguments, string inputLine) {
+      "default" : EMEvent("default", null, (string[] arguments, string inputLine) {
+            if (std.file.exists(arguments[0]) && arguments[0].isDir) {
+              arguments[0].chdir;
+
+              return EM_SUCCESS;
+            }
+
             if (arguments[0].matchAll(regex(r"^.\w+")) && inputLine[0].to!string == ".") {
               inputLine = inputLine[1..$];
 
@@ -261,15 +319,48 @@ class DSHCommandLine {
               }
             }
 
-            if (std.file.exists(arguments[0]) && arguments[0].isDir) {
-              arguments[0].chdir;
+            /**/
+            string inputBuffer = inputLine;
+            
+            while (!shellScript.tokenValidator(inputBuffer)) {
+              write("blockInput => ");
+              string input = readln;
+              if (stdin.eof) {
+                break;
+              }
+              inputBuffer ~= input.chomp;
+            }
 
-              return EM_SUCCESS;
+            try {
+              vm.evalString(inputBuffer);
+            } catch {
+              writeln("Some Error");
             }
 
             return EM_SUCCESS;
           }),
     ]);
+
+
+    initHiggsVM;
+  }
+
+  private void initHiggsVM() {
+    GC.reserve(1024 * 1024 * 1024);
+
+    sigaction_t sa;
+    memset(&sa, 0, sa.sizeof);
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = &segfaultHandler;
+    sa.sa_flags = SA_SIGINFO;
+    sigaction(SIGSEGV, &sa, null);
+
+
+    VM.init(!opts.noruntime, !opts.nostdlib);
+  }
+
+  ~this() {
+    VM.free;
   }
 
   private void processLine(string inputLine) {
@@ -337,7 +428,7 @@ class DSHCommandLine {
 
       string[] dontReplaceEnvCommandNames = ["set", "unset"];
       if (!dontReplaceEnvCommandNames.canFind(inputLine.split[0])) {
-        inputLine = dshenv.replaceEnvs(inputLine);
+        inputLine = users.currentUser.env.replaceEnvs(inputLine);
       }
 
       if (inputLine.matchAll(regex(r".*\s>(.*)"))) {

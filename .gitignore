@@ -8,4 +8,3 @@ dsh
 .*.*.*sw*
 dub.selections.json
 config
-mrubyCompile.o

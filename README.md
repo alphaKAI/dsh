@@ -10,18 +10,28 @@ It have Bash like syntax, but this is writteln in D language.
     % cd dsh
     % dmd main.d dshParser.d dshUtils.d
   
+##Futures
+    * JavaScript based ShellScript(D Shell contain Higgs JavaScriptVM)  
+  
 
 ##Disclaimer
 This is developing snapshot.  
   
   
 ##Author Enviromnent
-Arch Linux x86_64  
-DMD64 D Compiler v2.065  
+OS X 10.11.3  
+DMD64 D Compiler v2.070  
   
   
 ##LICENSE
-The MIT License  
+D Shell is licensed under the mit license.
+Copyright (C) 2015-2016 alphaKAI
+[The MIT License](https://opensource.org/licenses/mit-license.php)  
+  
+D Shell contain Higgs JavaScript VM  
+Higgs is licensed under the Modified BSD License(BSD-3-Clause).
+Copyright (c) 2011-2014, Maxime Chevalier-Boisvert. All rights reserved.
+[Modified BSD License(BSD-3-Clause)](https://opensource.org/licenses/BSD-3-Clause)
   
   
 ##Author

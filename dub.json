@@ -4,5 +4,7 @@
 	"copyright": "Copyright © 2015-2016, alphakai",
 	"authors": ["alphakai"],
 	"dependencies": {
-	}
+	},
+  "libs":["mruby", "dl"],
+  "dflags":["-J./source/higgs"]
 }

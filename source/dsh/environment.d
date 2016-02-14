@@ -1,5 +1,4 @@
 module dsh.environment;
-
 import std.algorithm.searching,
        std.algorithm.iteration,
        std.string,
