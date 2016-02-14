@@ -1,8 +1,8 @@
 #D Shell
 ##About
 The D Shell.  
-This is the UNIX Shell Enviromnent, which is called "D Shell".  
-It have Bash like syntax, but this is writteln in D language.  
+This is UNIX Shell Enviromnent "D Shell".  
+Bash like syntax, but this is writteln in D language.  
   
   
 ##Installation
