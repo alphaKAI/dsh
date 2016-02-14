@@ -9,6 +9,7 @@ Bash like syntax, but this is writteln in D language.
   % git clone https://github.com/alphaKAI/dsh
   % cd dsh
   % dub build
+  % mkdir config
   
 ##Futures
     * JavaScript based ShellScript(D Shell contain Higgs JavaScriptVM)  
