@@ -33,7 +33,7 @@ struct Stack(T) {
   }
 
   @property size_t length() {
-    return len;
+    return realLen;
   }
 
   void push(T newValue) {
