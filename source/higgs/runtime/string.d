@@ -176,18 +176,6 @@ uint64_t murmurHash64A(const void* key, size_t len, uint64_t seed = 1337)
 
     ubyte* tail = cast(ubyte*)data;
 
-    /*switch (len & 7)
-    {
-        case 7: h ^= (cast(uint64_t)tail[6]) << 48;
-        case 6: h ^= (cast(uint64_t)tail[5]) << 40;
-        case 5: h ^= (cast(uint64_t)tail[4]) << 32;
-        case 4: h ^= (cast(uint64_t)tail[3]) << 24;
-        case 3: h ^= (cast(uint64_t)tail[2]) << 16;
-        case 2: h ^= (cast(uint64_t)tail[1]) << 8;
-        case 1: h ^= (cast(uint64_t)tail[0]);
-                h *= m;
-        default:
-    }*/
     auto Z = len & 7;
     if (Z == 7) {
       h ^= (cast(uint64_t)tail[6]) << 48;
