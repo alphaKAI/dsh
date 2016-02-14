@@ -24,14 +24,14 @@ DMD64 D Compiler v2.070
   
   
 ##LICENSE
-D Shell is licensed under the mit license.
-Copyright (C) 2015-2016 alphaKAI
+D Shell is licensed under the mit license.  
+Copyright (C) 2015-2016 alphaKAI  
 [The MIT License](https://opensource.org/licenses/mit-license.php)  
   
 D Shell contain Higgs JavaScript VM  
-Higgs is licensed under the Modified BSD License(BSD-3-Clause).
-Copyright (c) 2011-2014, Maxime Chevalier-Boisvert. All rights reserved.
-[Modified BSD License(BSD-3-Clause)](https://opensource.org/licenses/BSD-3-Clause)
+Higgs is licensed under the Modified BSD License(BSD-3-Clause).  
+Copyright (c) 2011-2014, Maxime Chevalier-Boisvert. All rights reserved.  
+[Modified BSD License(BSD-3-Clause)](https://opensource.org/licenses/BSD-3-Clause)  
   
   
 ##Author
