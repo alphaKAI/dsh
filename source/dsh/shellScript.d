@@ -66,6 +66,7 @@ class DSHshellScript {
     }
   }
   
+  /* BUG: BlockTokenStack */
   public bool syntaxValidator(string code) {
     foreach (c; code.split("").filter!(e => e != "\"")) {
       foreach (tk; tokenPairs.keys) {
