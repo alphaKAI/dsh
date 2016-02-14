@@ -20,12 +20,9 @@ class DSHshellScript {
   private mrb_state* mrb;
   private DSHEnvironment env;
   private ExecuteMachine EM;
-  private string[string] blockTokenPairs;
-  private string[string] blockTokenPairsReversed;
-  private string[string] tokenPairs;
-  private string[string] tokenPairsReversed;
-  public Stack!string tokenStack;
-  public Stack!string blockTokenStack;
+  private char[char] TokenPairs;
+  private char[char] TokenPairsReversed;
+  private char[] Quotes;
 
   this(mrb_state* newMrb, ExecuteMachine _EM, DSHEnvironment _env) {
     EM  = _EM;
@@ -33,88 +30,85 @@ class DSHshellScript {
     mrb = newMrb;
 
     registerTokens;
-
-    tokenStack.init;
-    tokenStack.autoExtend = false;
-    blockTokenStack.init;
-    blockTokenStack.autoExtend = false;
   }
 
   private void registerTokens() {
-    blockTokenPairs = [
-      "module" : "end",
-      "class"  : "end",
-      "def"    : "end",
-      "do"     : "end",
-      "{"      :"}"
+    TokenPairs = [
+      '{' : '}',
+      '|' : '|',
+      '[' : ']',
+      '(' : ')'
     ];
-    
-    foreach (k, v; blockTokenPairs) {
-      blockTokenPairsReversed[v] = k;
-    }
-    
-    tokenPairs = [
-      "|" : "|",
-      "[" : "]",
-      "(" : ")",
-      "\'" : "\'",
-      "\"" : "\""
-    ];
+    Quotes = ['\'', '"', '`'];
 
-    foreach (k, v; tokenPairs) {
-      tokenPairsReversed[v] = k;
+    foreach (k, v; TokenPairs) {
+      TokenPairsReversed[v] = k;
     }
+
   }
-  
-  /* BUG: BlockTokenStack */
-  public bool syntaxValidator(string code) {
-    foreach (c; code.split("").filter!(e => e != "\"")) {
-      foreach (tk; tokenPairs.keys) {
-        if (tk == c) {
-          tokenStack.push(tk);
+
+  public bool tokenValidator(string code) {
+    Stack!char TokenStack;
+    Stack!char QuoteStack;
+
+    TokenStack.init;
+    TokenStack.autoExtend = false;
+
+    QuoteStack.init;
+    QuoteStack.autoExtend = false;
+
+    foreach (c; code.to!(char[])) {
+      foreach (q; Quotes) {
+        if (c == q) {
+          QuoteStack.push(q);
           continue;
         }
       }
 
-      foreach (b, e; tokenPairs) {
-        if (c == e) {
-          auto t = tokenStack.pop;
+      foreach (b, e; TokenPairs) {
+        if (c == b) {
+          TokenStack.push(c);
+          continue;
+        }
 
-          if (t != b) {
+        if (c == e) {
+          if (TokenStack.empty) {
             return false;
           }
+
+          char t = TokenStack.pop;
+          if (TokenPairs[t] != c) {
+            return false;
+          }
+
+          continue;
         }
       }
     }
 
-    foreach (splitter; ["", " "]) {
-      foreach (c; code.split(splitter)) {
-        foreach (tk; blockTokenPairs) {
-          if (tk == c) {
-            blockTokenStack.push(tk);
-            continue;
-          }
-        }
+    bool QuoteValid;
 
-        foreach (b, e; blockTokenPairs) {
-          if (c == e) {
-            if (blockTokenStack.empty) {
-              return true;
-            }
+    if (QuoteStack.length % 2 == 0) {
+      Stack!char quoteTmp;
 
-            auto t = blockTokenStack.pop;
-            if (blockTokenPairs[t] != c) {
-              return false;
-            } else {
-              return true;
-            }
-          }
+      quoteTmp.init;
+      quoteTmp.autoExtend = false;
+
+      import std.range;
+      foreach (_; ((QuoteStack.length/2).iota)) {
+        quoteTmp.push(QuoteStack.pop);
+      }
+
+      foreach (_; ((QuoteStack.length/2).iota)) {
+        if (quoteTmp.pop != QuoteStack.pop) {
+          break;
         }
       }
+
+      QuoteValid = true;
     }
 
-    return true;
+    return (TokenStack.empty && QuoteValid);
   }
-
 }
 
