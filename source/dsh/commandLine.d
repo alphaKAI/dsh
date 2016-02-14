@@ -72,6 +72,9 @@ extern (C) void segfaultHandler(int signal, siginfo_t* si, void* arg) {
   }
 immutable EXITDSH    = -0xdeadbeaf;
 
+immutable string JSLIBPATH = "lib/";
+immutable string[] preLoadJSLibs = ["console"];
+
 class DSHCommandLine {
   private DSHMode currentMode;
   private DSHUser user;
@@ -341,8 +344,11 @@ class DSHCommandLine {
           }),
     ]);
 
-
     initHiggsVM;
+
+    foreach (libName; preLoadJSLibs) {
+      vm.evalString("var " ~ libName ~ " = require('" ~ JSLIBPATH ~ libName ~ "')");
+    }
   }
 
   private void initHiggsVM() {
