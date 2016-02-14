@@ -337,7 +337,7 @@ class DSHCommandLine {
             try {
               vm.evalString(inputBuffer);
             } catch {
-              writeln("Some Error");
+              writeln(arguments[0] ~ " is not a command.");
             }
 
             return EM_SUCCESS;
