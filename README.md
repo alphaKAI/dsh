@@ -6,17 +6,12 @@ It have Bash like syntax, but this is writteln in D language.
   
   
 ##Installation
-    % git clone https://github.com/alphaKAI/dsh
-    % cd dsh
-    % dmd main.d dshParser.d dshUtils.d
+  % git clone https://github.com/alphaKAI/dsh
+  % cd dsh
+  % dub build
   
 ##Futures
     * JavaScript based ShellScript(D Shell contain Higgs JavaScriptVM)  
-  
-
-##Disclaimer
-This is developing snapshot.  
-  
   
 ##Author Enviromnent
 OS X 10.11.3  
