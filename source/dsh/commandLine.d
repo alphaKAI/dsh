@@ -82,6 +82,7 @@ class DSHCommandLine {
   private ExecuteMachine EM;
   private DSHshellScript shellScript;
   private string hostName;
+  private string homeDir;
   private string pluginDir;
   private string[] commands;
 
@@ -91,6 +92,7 @@ class DSHCommandLine {
     users = new DSHUsers(user);
     EM    = new ExecuteMachine;
     hostName = "MacBook-Pro";//environment.get("HOST");
+    homeDir  = environment.get("HOME"); 
     shellScript = new DSHshellScript(
                     EM,
                     users.currentUser.env);
@@ -157,7 +159,7 @@ class DSHCommandLine {
         }),
       "cd" : EMEvent("cd", "^cd", (string[] arguments, string inputLine) {
           if (arguments.length < 2) {
-            arguments ~= getcwd;
+            arguments ~= homeDir;
           }
 
           if (!std.file.exists(arguments[1]) || (std.file.exists(arguments[1]) && !isDir(arguments[1]))) {
@@ -165,7 +167,7 @@ class DSHCommandLine {
 
             return EM_FAILURE;
           } else {
-            arguments[0].chdir;
+            arguments[1].chdir;
 
             return EM_SUCCESS;
           }
