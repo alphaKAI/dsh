@@ -22,6 +22,7 @@ import core.sys.posix.signal,
        core.stdc.stdlib,
        core.memory;
 
+// Higgs related imports
 import parser.parser,
        ir.analysis,
        runtime.vm,util.string,
@@ -37,41 +38,38 @@ enum DSHMode : int {
 IRInstr instrPtr = null;
 
 extern (C) void segfaultHandler(int signal, siginfo_t* si, void* arg) {
-    import jit.codeblock;
+  import jit.codeblock;
 
-    // si->si_addr is the instruction pointer
-    auto ip = cast(CodePtr)si.si_addr;
+  // si->si_addr is the instruction pointer
+  auto ip = cast(CodePtr)si.si_addr;
 
-    writeln();
-    writeln("Caught segmentation fault");
-    writeln("IP=", ip);
+  writeln();
+  writeln("Caught segmentation fault");
+  writeln("IP=", ip);
 
-    auto cb = vm.execHeap;
-    auto startAddr = cb.getAddress(0);
-    auto endAddr = startAddr + cb.getWritePos();
+  auto cb = vm.execHeap;
+  auto startAddr = cb.getAddress(0);
+  auto endAddr = startAddr + cb.getWritePos();
 
-    if (ip >= startAddr && ip < endAddr)
-    {
-      auto offset = ip - startAddr;
-      writeln("IP in jitted code, offset=", offset);
-    }
-
-    if (vm.curInstr !is null)
-    {
-      writeln("vm.curInstr: ", vm.curInstr);
-    }
-
-    if (instrPtr !is null)
-    {
-      writeln("instrPtr: ", instrPtr);
-      writeln("curFun: ", instrPtr.block.fun.getName);
-    }
-
-    writeln("exiting");
-    exit(139);
+  if (ip >= startAddr && ip < endAddr) {
+    auto offset = ip - startAddr;
+    writeln("IP in jitted code, offset=", offset);
   }
-immutable EXITDSH    = -0xdeadbeaf;
 
+  if (vm.curInstr !is null) {
+    writeln("vm.curInstr: ", vm.curInstr);
+  }
+
+  if (instrPtr !is null) {
+    writeln("instrPtr: ", instrPtr);
+    writeln("curFun: ", instrPtr.block.fun.getName);
+  }
+
+  writeln("exiting");
+  exit(139);
+}
+
+immutable EXITDSH    = -0xdeadbeaf;
 immutable string JSLIBPATH = "lib/";
 immutable string[] preLoadJSLibs = ["console"];
 
@@ -102,6 +100,10 @@ class DSHCommandLine {
       "alias", "unalias", "saveConfig",
       "set", "unset", "default"];
 
+
+    /*
+      FIXME: arguments[X] style handling
+     */
 
     EM.registerEventByHash([
       "exit" : EMEvent("exit", "^exit", (string[] arguments, string inputLine) {
@@ -315,7 +317,7 @@ class DSHCommandLine {
             if (arguments[0].matchAll(regex(r"^.\w+")) && inputLine[0].to!string == ".") {
               inputLine = inputLine[1..$];
 
-              auto pid = spawnProcess(inputLine);
+              auto pid = spawnShell(inputLine);
               auto status = wait(pid);
               if (status == 0) {
                 return EM_SUCCESS;
@@ -387,7 +389,6 @@ class DSHCommandLine {
       if (arg == "|") {
         pipeFlag = true;
         indexOfCommands++;
-
         continue;
       } else if (arg == "&&" || arg == ";") {
         indexOfCommands++;
