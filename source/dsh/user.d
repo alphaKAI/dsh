@@ -25,7 +25,7 @@ class DSHUser {
   private DSHEnvironment _env;
 
   this(int level, string name) {
-    userLevel      = name == "roor" ? 1 : 0;
+    userLevel      = name == "root" ? 1 : 0;
     userName       = name;
     originalName   = name;
     _suMode        = false;
