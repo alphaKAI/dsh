@@ -14,8 +14,6 @@ import std.algorithm.searching,
        std.json,
        std.path;
 
-
-import dsh.config;
 private alias dsh.config.ElementType ElementType;
 class DSHUser {
   private DSHConfig config;
