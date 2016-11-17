@@ -212,8 +212,8 @@ class DSHCommandLine {
 
             return EM_SUCCESS;
           }),
-      "alias" : EMEvent("alias", "^alias$", (string[] arguments, string inputLine) {
-            inputLine = inputLine.replace("alias ", "");
+      "cmd-alias" : EMEvent("cmd-alias", "^cmd-alias", (string[] arguments, string inputLine) {
+            inputLine = inputLine.replace("cmd-alias ", "");
 
             if (!inputLine.canFind("=")) {
               writeln("[Error -> Failed to add alias] : Your foramt is wrong");
@@ -325,6 +325,7 @@ class DSHCommandLine {
 
               if (flag) {
                 writeln(arguments[0] ~ " is not a command.");
+                return EM_FAILURE;
               }
             }
 

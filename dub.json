@@ -5,6 +5,6 @@
 	"authors": ["alphakai"],
 	"dependencies": {
     "kontainer":"*",
-    "chickenclisp":{"path":"../ChickenClisp"}
+    "chickenclisp":"*"
 	}
 }
