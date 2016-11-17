@@ -22,51 +22,9 @@ import core.sys.posix.signal,
        core.stdc.stdlib,
        core.memory;
 
-// Higgs related imports
-import parser.parser,
-       ir.analysis,
-       runtime.vm,util.string,
-       util.os,
-       options,
-       ir.ir;
-
 enum DSHMode : int {
   user,
   root
-}
-
-IRInstr instrPtr = null;
-
-extern (C) void segfaultHandler(int signal, siginfo_t* si, void* arg) {
-  import jit.codeblock;
-
-  // si->si_addr is the instruction pointer
-  auto ip = cast(CodePtr)si.si_addr;
-
-  writeln();
-  writeln("Caught segmentation fault");
-  writeln("IP=", ip);
-
-  auto cb = vm.execHeap;
-  auto startAddr = cb.getAddress(0);
-  auto endAddr = startAddr + cb.getWritePos();
-
-  if (ip >= startAddr && ip < endAddr) {
-    auto offset = ip - startAddr;
-    writeln("IP in jitted code, offset=", offset);
-  }
-
-  if (vm.curInstr !is null) {
-    writeln("vm.curInstr: ", vm.curInstr);
-  }
-
-  if (instrPtr !is null) {
-    writeln("instrPtr: ", instrPtr);
-    writeln("curFun: ", instrPtr.block.fun.getName);
-  }
-
-  writeln("exiting");
-  exit(139);
 }
 
 immutable EXITDSH    = -0xdeadbeaf;
@@ -99,7 +57,6 @@ class DSHCommandLine {
       "login", "createuser", "aliases",
       "alias", "unalias", "saveConfig",
       "set", "unset", "default"];
-
 
     /*
       FIXME: arguments[X] style handling
@@ -330,7 +287,7 @@ class DSHCommandLine {
             string inputBuffer = inputLine;
             
             while (!shellScript.tokenValidator(inputBuffer)) {
-              write("blockInput => ");
+              write("=> ");
               string input = readln;
               if (stdin.eof) {
                 break;
@@ -338,39 +295,43 @@ class DSHCommandLine {
               inputBuffer ~= input.chomp;
             }
 
-            try {
-              vm.evalString(inputBuffer);
-            } catch {
-              writeln(arguments[0] ~ " is not a command.");
+            { // ShellScript execution
+              import orelang.Value;
+              bool flag;
+
+              void exe(string ib) {
+                try {
+                  switch (users.currentUser.executeScript(ib).type) with (ValueType) {
+                    case String:
+                      flag = true;
+                      break;
+                    case SymbolValue:
+                      flag = true;
+                      break;
+                    default:
+                      break;
+                  }
+                } catch {
+                  flag = true;
+                }
+              }
+
+              exe(inputBuffer);
+
+              if (flag) {
+                flag = false;
+                exe("(" ~ inputBuffer ~ ")");
+              }
+
+              if (flag) {
+                writeln(arguments[0] ~ " is not a command.");
+              }
             }
 
             return EM_SUCCESS;
           }),
     ]);
 
-    initHiggsVM;
-
-    foreach (libName; preLoadJSLibs) {
-      vm.evalString("var " ~ libName ~ " = require('" ~ JSLIBPATH ~ libName ~ "')");
-    }
-  }
-
-  private void initHiggsVM() {
-    GC.reserve(1024 * 1024 * 1024);
-
-    sigaction_t sa;
-    memset(&sa, 0, sa.sizeof);
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = &segfaultHandler;
-    sa.sa_flags = SA_SIGINFO;
-    sigaction(SIGSEGV, &sa, null);
-
-
-    VM.init(!opts.noruntime, !opts.nostdlib);
-  }
-
-  ~this() {
-    VM.free;
   }
 
   private void processLine(string inputLine) {
@@ -442,8 +403,8 @@ class DSHCommandLine {
 
       if (inputLine.matchAll(regex(r".*\s>(.*)"))) {
         string fname = inputLine.split(">")[1].strip;
-        _stdout = File(fname, "w");
-        inputLine = inputLine.replace(regex(r"\s?>.*"), "");
+        stdout       = File(fname, "w");
+        inputLine    = inputLine.replace(regex(r"\s?>.*"), "");
         redirectFlag = true;
       }
 

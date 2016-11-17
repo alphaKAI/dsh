@@ -109,7 +109,8 @@ class DSHUsers {
 
   private void loadUsers() {
     foreach(e; dirEntries(usersFileDir, SpanMode.shallow).filter!(f => f.name.endsWith(".json"))) {
-       string userName  = std.path.baseName(e, ".json");
+        import std.path;
+        string userName  = std.path.baseName(e, ".json");
        _users[userName] = new DSHUser(0, userName);
     }
   }

@@ -13,6 +13,7 @@ import std.algorithm.searching,
        std.file,
        std.json,
        std.path;
+import orelang.Interpreter;
 
 private alias dsh.config.ElementType ElementType;
 class DSHUser {
@@ -23,6 +24,7 @@ class DSHUser {
   private bool   _suMode;
   private string configFilePath;
   private DSHEnvironment _env;
+  private Interpreter itpr;
 
   this(int level, string name) {
     userLevel      = name == "root" ? 1 : 0;
@@ -32,8 +34,13 @@ class DSHUser {
     configFilePath = "config/" ~ name ~ ".json";
     config         = new DSHConfig;
     _env           = new DSHEnvironment;
+    itpr = new Interpreter;
 
     loadUserConfig;
+  }
+
+  public auto executeScript(string buffer) {
+    return itpr.executer(buffer);
   }
 
   public bool auth(string message = string.init) {
@@ -98,9 +105,9 @@ class DSHUser {
   }
 
   @property void saveConfig() {
-    JSONValue jvalue;
+    JSONValue jvalue = ["name":name];
 
-    foreach (key; ["name", "password", "home"]) {
+    foreach (key; ["password", "home"]) {
       jvalue.object[key] = JSONValue(config.getConfig(key).to!string);
     }
     
@@ -240,7 +247,6 @@ class DSHUser {
       writeln("Your setting file has been created.");
       writeln("You can edit the setting file anytime.");
       writeln("The file is located on #{File.expand_path(@configFilePath)}");
-      saveConfig;
       writeln("------------------");
     }
   }

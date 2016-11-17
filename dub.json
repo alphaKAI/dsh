@@ -4,8 +4,7 @@
 	"copyright": "Copyright © 2015-2016, alphakai",
 	"authors": ["alphakai"],
 	"dependencies": {
-    "kontainer":"*"
-	},
-  "libs":["dl"],
-  "dflags":["-J./source/higgs"]
+    "kontainer":"*",
+    "chickenclisp":{"path":"../ChickenClisp"}
+	}
 }
