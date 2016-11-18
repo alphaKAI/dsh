@@ -332,7 +332,6 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }),
     ]);
-
   }
 
   private void processLine(string inputLine) {

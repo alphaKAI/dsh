@@ -1,0 +1,6 @@
+(def cat (path)
+  (if (path-exists path)
+      (if (path-is-file path)
+        (println ((new FileClass path "r") readall))
+        (println path " is not a file, it is a directory"))
+      (println "No such a file: " path)))

@@ -2,6 +2,7 @@ module dsh.user;
 import dsh.environment,
        dsh.config;
 import std.algorithm.searching,
+       std.algorithm.iteration,
        std.digest.sha,
        std.process,
        std.variant,
@@ -35,6 +36,10 @@ class DSHUser {
     config         = new DSHConfig;
     _env           = new DSHEnvironment;
     itpr = new Interpreter;
+
+    foreach (command; dirEntries("commands", SpanMode.depth).filter!(f => f.name.endsWith("ore"))) {
+      itpr.executer(readText(command));
+    }
 
     loadUserConfig;
   }
