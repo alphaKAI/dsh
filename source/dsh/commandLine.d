@@ -32,11 +32,10 @@ immutable string JSLIBPATH = "lib/";
 immutable string[] preLoadJSLibs = ["console"];
 
 class DSHCommandLine {
-  private DSHMode currentMode;
-  private DSHUser user;
+  private DSHMode  currentMode;
+  private DSHUser  user;
   private DSHUsers users;
   private ExecuteMachine EM;
-  private DSHshellScript shellScript;
   private string hostName;
   private string homeDir;
   private string pluginDir;
@@ -49,9 +48,6 @@ class DSHCommandLine {
     EM    = new ExecuteMachine;
     hostName = "MacBook-Pro";//environment.get("HOST");
     homeDir  = environment.get("HOME"); 
-    shellScript = new DSHshellScript(
-                    EM,
-                    users.currentUser.env);
     commands = [
       "exit", "sudo", "ls", "cd", "pwd", "help", "users", 
       "login", "createuser", "aliases",
@@ -221,10 +217,10 @@ class DSHCommandLine {
               return EM_FAILURE;
             } else {
               writeln("[Add alias] : ",inputLine.split("=")[0].strip, " => ", inputLine.split("=")[1..$].join("=").strip);
-              users.currentUser.addAlias([
-                "contracted" : inputLine.split("=")[0].strip,
-                "expanded"   : inputLine.split("=")[1..$].join("=").strip
-              ]);
+              users.currentUser.addAlias(
+                inputLine.split("=")[0].strip,
+                inputLine.split("=")[1..$].join("=").strip
+              );
               
               return EM_SUCCESS;
             }
@@ -286,7 +282,7 @@ class DSHCommandLine {
             /**/
             string inputBuffer = inputLine;
             
-            while (!shellScript.tokenValidator(inputBuffer)) {
+            while (!users.currentUser.peekEngine.tokenValidator(inputBuffer)) {
               write("=> ");
               string input = readln;
               if (stdin.eof) {
@@ -332,6 +328,11 @@ class DSHCommandLine {
             return EM_SUCCESS;
           }),
     ]);
+
+    foreach (_user; users.getUsers) {
+      _user.registerEM(EM);
+      _user.init;
+    }
   }
 
   private void processLine(string inputLine) {
@@ -459,7 +460,7 @@ class DSHCommandLine {
 
       if (flags.keys.canFind("headFlag")) {
         if (flags["headFlag"]) {
-          pattern = regex(key ~ "$");
+          pattern = regex("^" ~ key ~ "$");
         }
       } else {
         pattern = regex(key);

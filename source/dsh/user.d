@@ -1,5 +1,7 @@
 module dsh.user;
-import dsh.environment,
+import dsh.executeMachine,
+       dsh.environment,
+       dsh.shellScript,
        dsh.config;
 import std.algorithm.searching,
        std.algorithm.iteration,
@@ -14,7 +16,8 @@ import std.algorithm.searching,
        std.file,
        std.json,
        std.path;
-import orelang.Interpreter;
+import orelang.Interpreter,
+       orelang.Value;
 
 private alias dsh.config.ElementType ElementType;
 class DSHUser {
@@ -35,8 +38,10 @@ class DSHUser {
     configFilePath = "config/" ~ name ~ ".json";
     config         = new DSHConfig;
     _env           = new DSHEnvironment;
-    itpr = new Interpreter;
+    itpr           = new Interpreter(new ShellScriptEngine);
+  }
 
+  public void init() { 
     foreach (command; dirEntries("commands", SpanMode.depth).filter!(f => f.name.endsWith("ore"))) {
       itpr.executer(readText(command));
     }
@@ -46,6 +51,14 @@ class DSHUser {
 
   public auto executeScript(string buffer) {
     return itpr.executer(buffer);
+  }
+
+  public void registerEM(ExecuteMachine EM) {
+    this.peekEngine.registerEM(EM);
+  }
+
+  public ShellScriptEngine peekEngine() {
+    return cast(ShellScriptEngine)this.itpr.peekEngine;
   }
 
   public bool auth(string message = string.init) {
@@ -73,39 +86,19 @@ class DSHUser {
   }
 
   @property string[string] aliases() {
-    string[string] _aliases = string[string].init;
-    auto value = (*config.getConfig("aliases").peek!(Variant[string]));
-
-    foreach (k, v; value) {
-      _aliases[k] = v.to!string;
-    }
-
-    return _aliases;
+    return _env.aliases;
   }
 
-  public void addAlias(string[string] aliasHash) {
-    string[string] _aliases = aliases;
-    Variant[string] hash;
-    aliases[aliasHash["contracted"]] = aliasHash["expanded"];
-    foreach (k, v; aliases) {
-      hash[k] = v;
-    }
+  public void addAlias(string _new, string _frm) {
+    _env.aliases[_new] = _frm;
 
-    config.addNewConfig(hash, "aliases", ElementType.OBJECT);
+    config.addNewConfig(_env.aliases, "aliases", ElementType.OBJECT);
   }
 
   public void unalias(string aliasName) {
-    string[string] _aliases = aliases;
-    if (_aliases.keys.canFind(aliasName)) {
-
-      Variant[string] hash;
-      _aliases.remove(aliasName);
-
-      foreach (k, v; aliases) {
-        hash[k] = v;
-      }
-
-      config.addNewConfig(hash, "aliases", ElementType.OBJECT);
+    if (_env.aliases.keys.canFind(aliasName)) {
+      _env.aliases.remove(aliasName);
+      config.addNewConfig(_env.aliases, "aliases", ElementType.OBJECT);
     }
   }
 
@@ -115,8 +108,8 @@ class DSHUser {
     foreach (key; ["password", "home"]) {
       jvalue.object[key] = JSONValue(config.getConfig(key).to!string);
     }
-    
-    jvalue.object["aliases"] = (*(config.getConfig("aliases").peek!(JSONValue[string])));
+
+    jvalue.object["aliases"] = config.getConfig("aliases").get!(string[string]);
 
     std.file.write(configFilePath, jvalue.toString);
   }
@@ -164,7 +157,6 @@ class DSHUser {
     }
   }
 
-
   @property string name() {
     return userName;
   }
@@ -207,6 +199,18 @@ class DSHUser {
           default: break;
         }
       }
+
+      if (exists("config/" ~ name ~ ".ore")) {
+        itpr.executer(readText("config/" ~ name ~ ".ore"));
+
+        if (itpr.peekEngine.variableDefined("aliases")) {
+          Value[string] hash = itpr.peekEngine.getVariable("aliases").getHashMap;
+
+          foreach (key, value; hash) {
+            this.addAlias(key, value.getString);
+          }
+        }
+      }
     } else {
       writeln("------------------");
       writeln("#Initial settings wizard");
@@ -247,11 +251,14 @@ class DSHUser {
         config.addNewConfig(environment.get("HOME"), "home", ElementType.STRING);
       }
 
-        config.addNewConfig((string[string]).init, "aliases", ElementType.OBJECT);
+      config.addNewConfig((string[string]).init, "aliases", ElementType.OBJECT);
 
       writeln("Your setting file has been created.");
       writeln("You can edit the setting file anytime.");
-      writeln("The file is located on #{File.expand_path(@configFilePath)}");
+ 
+      this.saveConfig;
+
+      writeln("The file is located on ", configFilePath.absolutePath);
       writeln("------------------");
     }
   }

@@ -19,7 +19,7 @@ struct EMEvent {
 
 class ExecuteMachine {
   private string[] _regexes;
-  private EMEvent[string] events;
+  public EMEvent[string] events;
 
   @property string[] regexes() {
     return _regexes;

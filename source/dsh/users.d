@@ -19,7 +19,7 @@ class DSHUsers {
   this(DSHUser owner = null) {
     if (owner) {
       _users[owner.name] = owner;
-      _currentUser      = owner;
+      _currentUser       = owner;
     }
     loadUsers;
   }
@@ -34,6 +34,10 @@ class DSHUsers {
 
   @property string[] users() {
     return _users.keys;
+  }
+
+  @property DSHUser[] getUsers() {
+    return _users.values;
   }
 
   @property bool userExists(string userName) {
@@ -109,9 +113,13 @@ class DSHUsers {
 
   private void loadUsers() {
     foreach(e; dirEntries(usersFileDir, SpanMode.shallow).filter!(f => f.name.endsWith(".json"))) {
-        import std.path;
-        string userName  = std.path.baseName(e, ".json");
-       _users[userName] = new DSHUser(0, userName);
+
+      import std.path;
+      string userName  = std.path.baseName(e, ".json");
+
+      if (!userExists(userName)) {
+        _users[userName] = new DSHUser(0, userName);
+      }
     }
   }
 }

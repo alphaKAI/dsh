@@ -7,6 +7,7 @@ import std.algorithm.searching,
 
 class DSHEnvironment {
   private string[string] env;
+  public  string[string] aliases;
 
   @property string[string] envs() {
     return env;

@@ -10,6 +10,10 @@ import std.algorithm.iteration,
        std.stdio,
        std.conv;
 
+import orelang.operator.IOperator,
+       orelang.Engine,
+       orelang.Value;
+
 struct EngineProcess {
   bool isKemEvent;
   string commandName;
@@ -17,18 +21,15 @@ struct EngineProcess {
   string[] inputs;
 }
 
-class DSHshellScript {
-  private DSHEnvironment env;
-  private ExecuteMachine EM;
+class ShellScriptEngine : Engine {
   private char[char] TokenPairs;
   private char[char] TokenPairsReversed;
   private char[] Quotes;
 
-  this(ExecuteMachine _EM, DSHEnvironment _env) {
-    EM  = _EM;
-    env = _env;
-
+  this() {
     registerTokens;
+
+    super();
   }
 
   private void registerTokens() {
@@ -101,6 +102,20 @@ class DSHshellScript {
     }
 
     return TokenStack.empty && QuoteValid;
+  }
+
+  public void registerEM(ExecuteMachine EM) {
+    foreach (event; EM.events) {
+      this.defineVariable(event.eventName, new Value(cast(IOperator)(
+      new class () IOperator {
+        public Value call(Engine engine, Value[] args) {
+          string[] sargs = event.eventName ~ args.map!(arg => arg.getString).array;
+          string cmd     = sargs.join(" ");
+
+          return new Value(event.behave(sargs, cmd));
+        }
+      })));
+    }
   }
 }
 
